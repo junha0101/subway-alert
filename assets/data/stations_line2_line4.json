@@ -1,0 +1,714 @@
+[
+  {
+    "displayName": "당고개역",
+    "apiName": "당고개",
+    "line": "4호선",
+    "neighborsUp": NaN,
+    "neighborsDown": "상계(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "상계역",
+    "apiName": "상계",
+    "line": "4호선",
+    "neighborsUp": "당고개(4호선)",
+    "neighborsDown": "노원(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "노원역",
+    "apiName": "노원",
+    "line": "4호선",
+    "neighborsUp": "상계(4호선)",
+    "neighborsDown": "창동(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "창동역",
+    "apiName": "창동",
+    "line": "4호선",
+    "neighborsUp": "노원(4호선)",
+    "neighborsDown": "쌍문(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "쌍문역",
+    "apiName": "쌍문",
+    "line": "4호선",
+    "neighborsUp": "창동(4호선)",
+    "neighborsDown": "수유(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "수유역",
+    "apiName": "수유",
+    "line": "4호선",
+    "neighborsUp": "쌍문(4호선)",
+    "neighborsDown": "미아(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "미아역",
+    "apiName": "미아",
+    "line": "4호선",
+    "neighborsUp": "수유(4호선)",
+    "neighborsDown": "미아사거리(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "미아사거리역",
+    "apiName": "미아사거리",
+    "line": "4호선",
+    "neighborsUp": "미아(4호선)",
+    "neighborsDown": "길음(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "길음역",
+    "apiName": "길음",
+    "line": "4호선",
+    "neighborsUp": "미아사거리(4호선)",
+    "neighborsDown": "성신여대입구(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "성신여대입구역",
+    "apiName": "성신여대입구",
+    "line": "4호선",
+    "neighborsUp": "길음(4호선)",
+    "neighborsDown": "한성대입구(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "한성대입구역",
+    "apiName": "한성대입구",
+    "line": "4호선",
+    "neighborsUp": "성신여대입구(4호선)",
+    "neighborsDown": "혜화(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "혜화역",
+    "apiName": "혜화",
+    "line": "4호선",
+    "neighborsUp": "한성대입구(4호선)",
+    "neighborsDown": "동대문(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "동대문역",
+    "apiName": "동대문",
+    "line": "4호선",
+    "neighborsUp": "혜화(4호선)",
+    "neighborsDown": "동대문역사문화공원(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "동대문역사문화공원역",
+    "apiName": "동대문역사문화공원",
+    "line": "4호선",
+    "neighborsUp": "동대문(4호선)",
+    "neighborsDown": "충무로(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "충무로역",
+    "apiName": "충무로",
+    "line": "4호선",
+    "neighborsUp": "동대문역사문화공원(4호선)",
+    "neighborsDown": "명동(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "명동역",
+    "apiName": "명동",
+    "line": "4호선",
+    "neighborsUp": "충무로(4호선)",
+    "neighborsDown": "회현(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "회현역",
+    "apiName": "회현",
+    "line": "4호선",
+    "neighborsUp": "명동(4호선)",
+    "neighborsDown": "서울역(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "서울역",
+    "apiName": "서울",
+    "line": "4호선",
+    "neighborsUp": "회현(4호선)",
+    "neighborsDown": "숙대입구(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "숙대입구역",
+    "apiName": "숙대입구",
+    "line": "4호선",
+    "neighborsUp": "서울역(4호선)",
+    "neighborsDown": "삼각지(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "삼각지역",
+    "apiName": "삼각지",
+    "line": "4호선",
+    "neighborsUp": "숙대입구(4호선)",
+    "neighborsDown": "신용산(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "신용산역",
+    "apiName": "신용산",
+    "line": "4호선",
+    "neighborsUp": "삼각지(4호선)",
+    "neighborsDown": "이촌(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "이촌역",
+    "apiName": "이촌",
+    "line": "4호선",
+    "neighborsUp": "신용산(4호선)",
+    "neighborsDown": "동작(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "동작역",
+    "apiName": "동작",
+    "line": "4호선",
+    "neighborsUp": "이촌(4호선)",
+    "neighborsDown": "총신대입구(이수)(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "총신대입구(이수)역",
+    "apiName": "총신대입구(이수)",
+    "line": "4호선",
+    "neighborsUp": "동작(4호선)",
+    "neighborsDown": "사당(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "사당역",
+    "apiName": "사당",
+    "line": "4호선",
+    "neighborsUp": "총신대입구(이수)(4호선)",
+    "neighborsDown": "남태령(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "남태령역",
+    "apiName": "남태령",
+    "line": "4호선",
+    "neighborsUp": "사당(4호선)",
+    "neighborsDown": "선바위(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "선바위역",
+    "apiName": "선바위",
+    "line": "4호선",
+    "neighborsUp": "남태령(4호선)",
+    "neighborsDown": "경마공원(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "경마공원역",
+    "apiName": "경마공원",
+    "line": "4호선",
+    "neighborsUp": "선바위(4호선)",
+    "neighborsDown": "대공원(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "대공원역",
+    "apiName": "대공원",
+    "line": "4호선",
+    "neighborsUp": "경마공원(4호선)",
+    "neighborsDown": "과천(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "과천역",
+    "apiName": "과천",
+    "line": "4호선",
+    "neighborsUp": "대공원(4호선)",
+    "neighborsDown": "정부과천청사(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "정부과천청사역",
+    "apiName": "정부과천청사",
+    "line": "4호선",
+    "neighborsUp": "과천(4호선)",
+    "neighborsDown": "인덕원(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "인덕원역",
+    "apiName": "인덕원",
+    "line": "4호선",
+    "neighborsUp": "정부과천청사(4호선)",
+    "neighborsDown": "평촌(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "평촌역",
+    "apiName": "평촌",
+    "line": "4호선",
+    "neighborsUp": "인덕원(4호선)",
+    "neighborsDown": "범계(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "범계역",
+    "apiName": "범계",
+    "line": "4호선",
+    "neighborsUp": "평촌(4호선)",
+    "neighborsDown": "금정(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "금정역",
+    "apiName": "금정",
+    "line": "4호선",
+    "neighborsUp": "범계(4호선)",
+    "neighborsDown": "산본(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "산본역",
+    "apiName": "산본",
+    "line": "4호선",
+    "neighborsUp": "금정(4호선)",
+    "neighborsDown": "대야미(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "대야미역",
+    "apiName": "대야미",
+    "line": "4호선",
+    "neighborsUp": "산본(4호선)",
+    "neighborsDown": "반월(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "반월역",
+    "apiName": "반월",
+    "line": "4호선",
+    "neighborsUp": "대야미(4호선)",
+    "neighborsDown": "상록수(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "상록수역",
+    "apiName": "상록수",
+    "line": "4호선",
+    "neighborsUp": "반월(4호선)",
+    "neighborsDown": "한대앞(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "한대앞역",
+    "apiName": "한대앞",
+    "line": "4호선",
+    "neighborsUp": "상록수(4호선)",
+    "neighborsDown": "중앙(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "중앙역",
+    "apiName": "중앙",
+    "line": "4호선",
+    "neighborsUp": "한대앞(4호선)",
+    "neighborsDown": "고잔(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "고잔역",
+    "apiName": "고잔",
+    "line": "4호선",
+    "neighborsUp": "중앙(4호선)",
+    "neighborsDown": "초지(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "초지역",
+    "apiName": "초지",
+    "line": "4호선",
+    "neighborsUp": "고잔(4호선)",
+    "neighborsDown": "안산(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "안산역",
+    "apiName": "안산",
+    "line": "4호선",
+    "neighborsUp": "초지(4호선)",
+    "neighborsDown": "신길온천(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "신길온천역",
+    "apiName": "신길온천",
+    "line": "4호선",
+    "neighborsUp": "안산(4호선)",
+    "neighborsDown": "정왕(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "정왕역",
+    "apiName": "정왕",
+    "line": "4호선",
+    "neighborsUp": "신길온천(4호선)",
+    "neighborsDown": "오이도(4호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "오이도역",
+    "apiName": "오이도",
+    "line": "4호선",
+    "neighborsUp": "정왕(4호선)",
+    "neighborsDown": NaN,
+    "branchTag": "main"
+  },
+  {
+    "displayName": "시청역",
+    "apiName": "시청",
+    "line": "2호선",
+    "neighborsUp": "아현(2호선)",
+    "neighborsDown": "을지로입구(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "을지로입구역",
+    "apiName": "을지로입구",
+    "line": "2호선",
+    "neighborsUp": "시청(2호선)",
+    "neighborsDown": "을지로3가(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "을지로3가역",
+    "apiName": "을지로3가",
+    "line": "2호선",
+    "neighborsUp": "을지로입구(2호선)",
+    "neighborsDown": "을지로4가(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "을지로4가역",
+    "apiName": "을지로4가",
+    "line": "2호선",
+    "neighborsUp": "을지로3가(2호선)",
+    "neighborsDown": "동대문역사문화공원(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "동대문역사문화공원역",
+    "apiName": "동대문역사문화공원",
+    "line": "2호선",
+    "neighborsUp": "을지로4가(2호선)",
+    "neighborsDown": "신당(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "신당역",
+    "apiName": "신당",
+    "line": "2호선",
+    "neighborsUp": "동대문역사문화공원(2호선)",
+    "neighborsDown": "상왕십리(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "상왕십리역",
+    "apiName": "상왕십리",
+    "line": "2호선",
+    "neighborsUp": "신당(2호선)",
+    "neighborsDown": "왕십리(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "왕십리역",
+    "apiName": "왕십리",
+    "line": "2호선",
+    "neighborsUp": "상왕십리(2호선)",
+    "neighborsDown": "한양대(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "한양대역",
+    "apiName": "한양대",
+    "line": "2호선",
+    "neighborsUp": "왕십리(2호선)",
+    "neighborsDown": "뚝섬(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "뚝섬역",
+    "apiName": "뚝섬",
+    "line": "2호선",
+    "neighborsUp": "한양대(2호선)",
+    "neighborsDown": "성수(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "성수역",
+    "apiName": "성수",
+    "line": "2호선",
+    "neighborsUp": "뚝섬(2호선)",
+    "neighborsDown": "건대입구(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "건대입구역",
+    "apiName": "건대입구",
+    "line": "2호선",
+    "neighborsUp": "성수(2호선)",
+    "neighborsDown": "구의(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "구의역",
+    "apiName": "구의",
+    "line": "2호선",
+    "neighborsUp": "건대입구(2호선)",
+    "neighborsDown": "강변(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "강변역",
+    "apiName": "강변",
+    "line": "2호선",
+    "neighborsUp": "구의(2호선)",
+    "neighborsDown": "잠실나루(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "잠실나루역",
+    "apiName": "잠실나루",
+    "line": "2호선",
+    "neighborsUp": "강변(2호선)",
+    "neighborsDown": "잠실(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "잠실역",
+    "apiName": "잠실",
+    "line": "2호선",
+    "neighborsUp": "잠실나루(2호선)",
+    "neighborsDown": "잠실새내(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "잠실새내역",
+    "apiName": "잠실새내",
+    "line": "2호선",
+    "neighborsUp": "잠실(2호선)",
+    "neighborsDown": "종합운동장(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "종합운동장역",
+    "apiName": "종합운동장",
+    "line": "2호선",
+    "neighborsUp": "잠실새내(2호선)",
+    "neighborsDown": "삼성(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "삼성역",
+    "apiName": "삼성",
+    "line": "2호선",
+    "neighborsUp": "종합운동장(2호선)",
+    "neighborsDown": "선릉(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "선릉역",
+    "apiName": "선릉",
+    "line": "2호선",
+    "neighborsUp": "삼성(2호선)",
+    "neighborsDown": "역삼(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "역삼역",
+    "apiName": "역삼",
+    "line": "2호선",
+    "neighborsUp": "선릉(2호선)",
+    "neighborsDown": "강남(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "강남역",
+    "apiName": "강남",
+    "line": "2호선",
+    "neighborsUp": "역삼(2호선)",
+    "neighborsDown": "교대(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "교대역",
+    "apiName": "교대",
+    "line": "2호선",
+    "neighborsUp": "강남(2호선)",
+    "neighborsDown": "서초(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "서초역",
+    "apiName": "서초",
+    "line": "2호선",
+    "neighborsUp": "교대(2호선)",
+    "neighborsDown": "방배(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "방배역",
+    "apiName": "방배",
+    "line": "2호선",
+    "neighborsUp": "서초(2호선)",
+    "neighborsDown": "사당(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "사당역",
+    "apiName": "사당",
+    "line": "2호선",
+    "neighborsUp": "방배(2호선)",
+    "neighborsDown": "낙성대(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "낙성대역",
+    "apiName": "낙성대",
+    "line": "2호선",
+    "neighborsUp": "사당(2호선)",
+    "neighborsDown": "서울대입구(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "서울대입구역",
+    "apiName": "서울대입구",
+    "line": "2호선",
+    "neighborsUp": "낙성대(2호선)",
+    "neighborsDown": "봉천(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "봉천역",
+    "apiName": "봉천",
+    "line": "2호선",
+    "neighborsUp": "서울대입구(2호선)",
+    "neighborsDown": "신림(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "신림역",
+    "apiName": "신림",
+    "line": "2호선",
+    "neighborsUp": "봉천(2호선)",
+    "neighborsDown": "신대방(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "신대방역",
+    "apiName": "신대방",
+    "line": "2호선",
+    "neighborsUp": "신림(2호선)",
+    "neighborsDown": "구로디지털단지(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "구로디지털단지역",
+    "apiName": "구로디지털단지",
+    "line": "2호선",
+    "neighborsUp": "신대방(2호선)",
+    "neighborsDown": "대림(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "대림역",
+    "apiName": "대림",
+    "line": "2호선",
+    "neighborsUp": "구로디지털단지(2호선)",
+    "neighborsDown": "신도림(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "신도림역",
+    "apiName": "신도림",
+    "line": "2호선",
+    "neighborsUp": "대림(2호선)",
+    "neighborsDown": "문래(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "문래역",
+    "apiName": "문래",
+    "line": "2호선",
+    "neighborsUp": "신도림(2호선)",
+    "neighborsDown": "영등포구청(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "영등포구청역",
+    "apiName": "영등포구청",
+    "line": "2호선",
+    "neighborsUp": "문래(2호선)",
+    "neighborsDown": "당산(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "당산역",
+    "apiName": "당산",
+    "line": "2호선",
+    "neighborsUp": "영등포구청(2호선)",
+    "neighborsDown": "합정(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "합정역",
+    "apiName": "합정",
+    "line": "2호선",
+    "neighborsUp": "당산(2호선)",
+    "neighborsDown": "홍대입구(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "홍대입구역",
+    "apiName": "홍대입구",
+    "line": "2호선",
+    "neighborsUp": "합정(2호선)",
+    "neighborsDown": "신촌(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "신촌역",
+    "apiName": "신촌",
+    "line": "2호선",
+    "neighborsUp": "홍대입구(2호선)",
+    "neighborsDown": "이대(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "이대역",
+    "apiName": "이대",
+    "line": "2호선",
+    "neighborsUp": "신촌(2호선)",
+    "neighborsDown": "아현(2호선)",
+    "branchTag": "main"
+  },
+  {
+    "displayName": "아현역",
+    "apiName": "아현",
+    "line": "2호선",
+    "neighborsUp": "이대(2호선)",
+    "neighborsDown": "시청(2호선)",
+    "branchTag": "main"
+  }
+]
