@@ -1,7 +1,7 @@
 // /subway-alert/app/(tabs)/index.tsx
 import React from "react";
 import { SafeAreaView, ScrollView, View, Text, StyleSheet, Pressable, Alert } from "react-native";
-import { Swipeable } from "react-native-gesture-handler"; // ✅ 추가
+import { Swipeable } from "react-native-gesture-handler";
 import COLORS from "../../lib/colors";
 import { T } from "../../lib/typography";
 import { paddingH, radiusCard, shadowCard } from "../../lib/ui";
@@ -9,24 +9,28 @@ import { useAlarms } from "../../store/useAlarms";
 import ToggleBadge from "../../components/ToggleBadge";
 import FabPlus from "../../components/FabPlus";
 import AddAlarmSheet from "../../components/AddAlarmSheet";
-import { sendArrivalNotification } from "../../utils/notify";
-import { getMockArrivals } from "../../utils/arrivals.mock";
-import { fetchRealtimeArrivals } from "../../utils/api/seoul"; // ✅ API 테스트용 임포트
+import AddFavoriteSheet from "../../components/AddFavoriteSheet";
+import FavoriteMiniCard from "../../components/FavoriteMiniCard";
 
-// ✅ 우측 Delete 액션 (홈 전용, 스타일 최소 추가)
+import { sendArrivalNotificationWithFields } from "../../utils/notify";
+import { getMockArrivals } from "../../utils/arrivals.mock";
+import { fetchRealtimeArrivals } from "../../utils/api/seoul";
+
+const MINI_R = 14; // 미니카드/삭제 버튼 라운드 통일
+
 function RightActions({ onDelete }: { onDelete: () => void }) {
   return (
     <Pressable
       onPress={onDelete}
       accessibilityRole="button"
-      accessibilityLabel="알람 삭제"
+      accessibilityLabel="삭제"
       style={{
         backgroundColor: "#EF4444",
         justifyContent: "center",
         alignItems: "center",
         width: 88,
-        borderRadius: radiusCard,
-        marginBottom: 12,
+        height: "100%",
+        borderRadius: MINI_R,
         marginLeft: 8,
       }}
     >
@@ -35,47 +39,43 @@ function RightActions({ onDelete }: { onDelete: () => void }) {
   );
 }
 
+// a.title 예: "강남역 2호선 (역삼 방면)"
+function parseTitle(title: string) {
+  const m = title?.match(/^(.*)\s(.*)\s\((.*)\)$/);
+  return {
+    station: m?.[1] ?? title ?? "",
+    line: m?.[2] ?? "",
+    direction: m?.[3] ?? "",
+  };
+}
+
 export default function Home() {
-  const { alarms, toggleAlarm, customPhrases, removeAlarm } = useAlarms() as any; // ✅ removeAlarm 추가
+  const {
+    alarms, toggleAlarm, customPhrases, removeAlarm,
+    favorites, removeFavorite,
+  } = useAlarms() as any;
+
   const enabled = alarms.filter((a: any) => a.enabled);
   const [open, setOpen] = React.useState(false);
+  const [favOpen, setFavOpen] = React.useState(false);
   const [apiLoading, setApiLoading] = React.useState(false);
 
-  // 삭제 확인 다이얼로그
-  const confirmDelete = (id: string, title: string) => {
+  const confirmDeleteFavorite = (key: string, label: string) => {
     Alert.alert(
-      "알람 삭제",
-      `“${title}” 알람을 삭제할까요?`,
-      [
-        { text: "취소", style: "cancel" },
-        {
-          text: "삭제",
-          style: "destructive",
-          onPress: () => {
-            try {
-              removeAlarm(id); // UNDO 없음, 즉시 확정
-            } catch (e) {
-              Alert.alert("삭제에 실패했어요. 다시 시도해주세요.");
-            }
-          },
-        },
-      ],
+      "즐겨찾기 삭제",
+      `“${label}”을 삭제할까요?`,
+      [{ text: "취소", style: "cancel" }, { text: "삭제", style: "destructive", onPress: () => removeFavorite(key) }],
       { cancelable: true }
     );
   };
 
-  // 실제 알림 테스트 (모킹 데이터 기반)
   async function testNotify() {
     if (alarms.length === 0) return;
-    const title: string = alarms[0].title;
-    const m = title.match(/^(.*)\s(.*)\s\((.*)\)$/);
-    const station = m?.[1] ?? "인덕원역";
-    const line = m?.[2] ?? "4호선";
-    const direction = m?.[3] ?? "사당 방면";
+    const title: string = alarms[0].title || "";
+    const { station, line, direction } = parseTitle(title);
 
     const { first, second } = await getMockArrivals({ station, line, direction });
-
-    await sendArrivalNotification({
+    await sendArrivalNotificationWithFields({
       station,
       line,
       direction,
@@ -85,26 +85,26 @@ export default function Home() {
     });
   }
 
-  // ✅ API 실 호출 테스트 버튼 핸들러
   async function testApi() {
     if (apiLoading) return;
     setApiLoading(true);
     try {
-      // 역 이름은 임시 고정값. 나중에 선택값으로 바꿔도 됨.
       const data = await fetchRealtimeArrivals("인덕원");
       if (Array.isArray(data) && data.length > 0) {
-        const first = data[0];
-        Alert.alert(
-          "API 성공",
-          `총 ${data.length}건 수신\n예: ${first.updnLine ?? ""}/${first.trainLineNm ?? ""} · ${first.arvlMsg2 ?? ""}`
-        );
+        const first = data[0] || {};
+        const msg =
+          "총 " + data.length + "건 수신\n예: " +
+          (first.updnLine || "") + "/" +
+          (first.trainLineNm || "") + " · " +
+          (first.arvlMsg2 || "");
+        Alert.alert("API 성공", msg);
         console.log("[API 성공] 수신 건수:", data.length, "\n샘플:", data.slice(0, 2));
       } else {
         Alert.alert("API 결과", "0건 수신(역명/응답 확인 필요)");
         console.log("[API 결과] 0건 수신:", data);
       }
     } catch (e: any) {
-      const msg = e?.message ?? String(e);
+      const msg = e?.message ? e.message : String(e);
       Alert.alert("API 실패", msg);
       console.log("[API 실패]", e);
     } finally {
@@ -112,47 +112,107 @@ export default function Home() {
     }
   }
 
-  // 시각적 테스트 (실제 알림 대신 화면에서만 확인)
-  function testVisual() {
-    Alert.alert("✅ 알림 시각적 테스트", "이 자리에 실제 알림 UI가 표시됩니다.");
-  }
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.screenBg }}>
       <ScrollView contentContainerStyle={{ padding: paddingH, paddingBottom: 120 }}>
-        <Text style={[T.helloName, { color: COLORS.primary, marginTop: 8 }]}>준하님,</Text>
-        <Text style={[T.helloSub]}>오늘도 안전하고 가벼운 이동 되세요~!</Text>
+        <Text style={[T.helloName, { color: COLORS.primary, marginTop: 10, fontSize: 24 }]}>준하님,</Text>
+        <Text style={[T.helloSub, { fontSize: 14 }]}>오도 안전하고 가벼운 이동 되세요~!</Text>
 
         {/* 자주 타는 것 */}
-        <View style={[styles.card, { marginTop: 14 }]}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
+        <View style={styles.outerCard}>
+          <View style={styles.favHeaderRow}>
             <Text style={[T.cardTitle]}>자주 타는 것</Text>
-            <Pressable><Text style={{ color: COLORS.primary, fontWeight: "600" }}>+ 추가하기</Text></Pressable>
+            <Pressable
+              onPress={() => setFavOpen(true)}
+              hitSlop={8}
+              style={({ pressed }) => [styles.favPlusBtn, pressed && { opacity: 0.6 }]}
+            >
+              <Text style={styles.favPlusTxt}>＋</Text>
+            </Pressable>
           </View>
-          <View style={{ height: 80, borderRadius: 14, backgroundColor: "#fff", borderWidth: 1, borderColor: "#F1F5F9" }} />
+
+          {/* 목록/placeholder */}
+          {!favorites || favorites.length === 0 ? (
+            <Text style={[T.cardSub, { marginTop: 2 }]}>등록된 즐겨찾기가 없어요.</Text>
+          ) : (
+            <View style={{ gap: 10 }}>
+              {favorites.map((f: any) => (
+                <Swipeable
+                  key={f.key}
+                  renderRightActions={() => (
+                    <RightActions
+                      onDelete={() =>
+                        confirmDeleteFavorite(f.key, `${f.stationName} ${f.line} (${f.direction})`)
+                      }
+                    />
+                  )}
+                  overshootRight={false}
+                >
+                  <FavoriteMiniCard stationName={f.stationName} line={f.line} direction={f.direction} />
+                </Swipeable>
+              ))}
+            </View>
+          )}
         </View>
 
         {/* 활성화된 알람 */}
         <Text style={{ marginTop: 18, marginBottom: 8, color: COLORS.textSub }}>활성화된 알람</Text>
-        {enabled.map((a: any) => (
-          <Swipeable
-            key={a.id}
-            renderRightActions={() => (
-              <RightActions onDelete={() => confirmDelete(a.id, a.title)} />
-            )}
-            overshootRight={false}
-          >
-            <View style={[styles.alarmCard]}>
-              <View style={{ flex: 1 }}>
-                <Text style={T.cardTitle}>{a.title}</Text>
-                <Text style={T.cardSub}>{fmtDays(a.days)}  /  {a.startTime}~{a.endTime}</Text>
-              </View>
-              <ToggleBadge value={a.enabled} onChange={() => toggleAlarm(a.id)} />
-            </View>
-          </Swipeable>
-        ))}
+        {enabled.map((a: any) => {
+          const { station, line, direction } = parseTitle(a.title);
+          return (
+            <Swipeable
+              key={a.id}
+              renderRightActions={() => (
+                <RightActions
+                  onDelete={() =>
+                    Alert.alert(
+                      "알람 삭제",
+                      `“${a.title}” 알람을 삭제할까요?`,
+                      [{ text: "취소", style: "cancel" }, { text: "삭제", style: "destructive", onPress: () => removeAlarm(a.id) }],
+                      { cancelable: true }
+                    )
+                  }
+                />
+              )}
+              overshootRight={false}
+            >
+              <View style={styles.alarmCard}>
+                <View style={{ flex: 1 }}>
+                  {/* 1줄: 역명 + 호선 배지 + 방면(인라인) */}
+                  <View style={styles.titleRow}>
+                    <Text style={T.cardTitle}>{station}</Text>
 
-        {/* 버튼 2개 (가로 정렬) */}
+                    {!!line && (
+                      <View style={styles.lineBadge}>
+                        <Text style={styles.lineBadgeText}>{line}</Text>
+                      </View>
+                    )}
+
+                    {!!direction && (
+                      <Text style={styles.dirInline} numberOfLines={1} ellipsizeMode="tail">
+                        {direction}
+                      </Text>
+                    )}
+                  </View>
+
+                  {/* 2줄: 요일 / 시간 */}
+                  <View style={styles.metaRow}>
+                    <Text style={[styles.metaText, { fontWeight: 900, fontSize: 14, lineHeight: 20 }]}>{fmtDays(a.days)}</Text>
+                    <Text style={[styles.metaDivider, { fontWeight: 900, fontSize: 14, lineHeight: 20 }]}> / </Text>
+                    <Text style={[styles.metaText, { fontWeight: 700, fontSize: 14, lineHeight: 20 }]}>
+                      {a.startTime}~{a.endTime}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* 토글 */}
+                <ToggleBadge value={a.enabled} onChange={() => toggleAlarm(a.id)} />
+              </View>
+            </Swipeable>
+          );
+        })}
+
+        {/* 테스트 버튼 */}
         <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 12 }}>
           <Pressable onPress={testNotify} style={{ marginHorizontal: 8 }}>
             <Text style={{ color: COLORS.primary, fontWeight: "600" }}>알림 테스트</Text>
@@ -167,16 +227,90 @@ export default function Home() {
 
       <FabPlus onPress={() => setOpen(true)} />
       {open && <AddAlarmSheet open={open} onClose={() => setOpen(false)} />}
+      {favOpen && <AddFavoriteSheet open={favOpen} onClose={() => setFavOpen(false)} />}
     </SafeAreaView>
   );
 }
 
 function fmtDays(days: number[]) {
-  const n = ["월", " 화", " 수", " 목", " 금", " 토"," 일"];
+  const n = ["월", " 화", " 수", " 목", " 금", " 토", " 일"];
   return days.length ? days.sort((a, b) => a - b).map(d => n[d]).join("") : "요일 미설정";
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: COLORS.cardBg, borderRadius: radiusCard, padding: 14, ...shadowCard },
-  alarmCard: { backgroundColor: "#fff", borderRadius: radiusCard, padding: 14, marginBottom: 12, flexDirection: "row", alignItems: "center", ...shadowCard },
+  // 부모 카드
+  outerCard: {
+    backgroundColor: "#fff",
+    borderRadius: radiusCard,
+    padding: 14,
+    overflow: "visible",
+    marginTop: 8,
+    ...shadowCard,
+  },
+
+  // 즐겨찾기 헤더 한 줄 정렬
+  favHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center", // + 버튼 수직 중앙
+    marginBottom: 9,
+  },
+  favPlusBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  favPlusTxt: {
+    color: COLORS.primary,
+    fontWeight: "900",
+    fontSize: 20,
+  },
+
+  // 알람 카드
+  alarmCard: {
+    backgroundColor: "#fff",
+    borderRadius: radiusCard,
+    padding: 14,
+    marginBottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    ...shadowCard,
+  },
+
+  // 제목줄(역명 + 배지 + 방면)
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+
+  // 호선 배지 (연보라 타원)
+  lineBadge: {
+    backgroundColor: "rgba(90,77,255,0.12)",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    marginLeft: 8,
+    alignSelf: "center",
+  },
+  lineBadgeText: {
+    color: COLORS.primary,
+    fontWeight: "700",
+    fontSize: 12,
+  },
+
+  // ✅ 방면 인라인(배지 오른쪽)
+  dirInline: {
+    fontSize: 13,
+    color: "rgba(0,0,0,0.6)",
+    marginLeft: 8,   // 배지와 동일 간격
+    flexShrink: 1,   // 길면 말줄임
+  },
+
+  // 요일/시간
+  metaRow: { flexDirection: "row", alignItems: "center" },
+  metaText: { fontSize: 12.5, color: "rgba(0,0,0,0.6)" },
+  metaDivider: { fontSize: 12.5, color: "rgba(0,0,0,0.35)", marginHorizontal: 6 },
 });

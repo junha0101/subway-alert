@@ -7,23 +7,22 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-
     "scheme": "subwayalert",
     "plugins": [
       "expo-router",
       [
         "expo-location",
-        { "isAndroidBackgroundLocationEnabled": true }
+        {
+          "isAndroidBackgroundLocationEnabled": true
+        }
       ],
       "expo-notifications"
     ],
-
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
-
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.haengttu.subwayalert",
@@ -33,14 +32,18 @@
         "NSUserTrackingUsageDescription": "개인화된 알림을 제공하기 위해 필요합니다."
       }
     },
-
     "android": {
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
         "ACCESS_BACKGROUND_LOCATION",
         "FOREGROUND_SERVICE",
-        "POST_NOTIFICATIONS"
+        "POST_NOTIFICATIONS",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION"
       ],
       "package": "com.haengttu.subwayalert",
       "adaptiveIcon": {
@@ -49,13 +52,15 @@
       },
       "edgeToEdgeEnabled": true
     },
-
     "web": {
       "favicon": "./assets/favicon.png"
     },
-
     "extra": {
-      "EXPO_PUBLIC_SEOUL_API_KEY": "6550434a41776e7335396f4f706b74"
+      "EXPO_PUBLIC_SEOUL_API_KEY": "6550434a41776e7335396f4f706b74",
+      "router": {},
+      "eas": {
+        "projectId": "2b865279-0e0d-4cc1-b440-bd12efaee3ca"
+      }
     }
   }
 }

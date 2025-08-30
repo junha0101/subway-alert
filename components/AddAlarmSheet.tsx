@@ -1,9 +1,10 @@
 // /subway-alert/components/AddAlarmSheet.tsx
 import React from "react";
-import { View, Text, StyleSheet, TextInput, Pressable, Platform, Alert } from "react-native";
+import { View, Text, StyleSheet, Pressable, Platform, Alert } from "react-native";
 import BottomSheet, {
   BottomSheetBackdrop,
-  BottomSheetScrollView, // ✅ ScrollView로 교체
+  BottomSheetScrollView,
+  BottomSheetTextInput,
 } from "@gorhom/bottom-sheet";
 import MapView, { Marker, Region } from "react-native-maps";
 import * as Location from "expo-location";
@@ -12,12 +13,14 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import COLORS from "../lib/colors";
 import { radiusCard, shadowCard } from "../lib/ui";
 import { useAlarms } from "../store/useAlarms";
-// import RadiusPickerSheet from "./RadiusPickerSheet"; // ⛔ 반경 관련 제거
 import { geocodeAddress } from "../utils/geocode";
 
 // 역/노선/방면 유틸
-import { searchStations, getLinesForStation, getDirectionsForStationLine } from "../utils/stations";
-// import { getNextTwoArrivals } from "../utils/api/arrivals"; // ⛔ 미리보기 제거
+import {
+  searchStations,
+  getLinesForStation,
+  getDirectionsForStationLine,
+} from "../utils/stations";
 
 type Props = {
   open: boolean;
@@ -61,14 +64,20 @@ export default function AddAlarmSheet({ open, onClose }: Props) {
     longitudeDelta: 0.01,
   });
   const [confirmEnabled, setConfirmEnabled] = React.useState(false);
-  const [confirmedLocation, setConfirmedLocation] = React.useState<{ latitude: number; longitude: number } | null>(null);
+  const [confirmedLocation, setConfirmedLocation] =
+    React.useState<{ latitude: number; longitude: number } | null>(null);
 
   // 2) 지하철/방면
-  const [station, setStation] = React.useState(""); // ✅ 선택 확정된 표시용(탭했을 때만 세팅)
+  const [station, setStation] = React.useState(""); // 표시용 확정 텍스트
   const [line, setLine] = React.useState(""); // 선택된 라인
-  const [direction, setDirection] = React.useState("");// "평촌 방면"
+  const [direction, setDirection] = React.useState(""); // "평촌 방면"
+
+  // ✅ 지오펜싱 필수 (추가)
+  const [dirKey, setDirKey] = React.useState<"up" | "down" | null>(null);
+  const [neighborApiName, setNeighborApiName] = React.useState<string | null>(null);
+
   // 자동완성 보조
-  const [stationQuery, setStationQuery] = React.useState(""); // ✅ 사용자가 타이핑한 그대로
+  const [stationQuery, setStationQuery] = React.useState(""); // 사용자가 타이핑한 값
   const [stationList, setStationList] = React.useState<
     Array<{ displayName: string; apiName: string; line: string }>
   >([]);
@@ -78,7 +87,7 @@ export default function AddAlarmSheet({ open, onClose }: Props) {
     Array<{ key: "up" | "down"; label: string; neighborApiName: string }>
   >([]);
 
-  // 3) 조건/요일/시간 (반경 제거)
+  // 3) 조건/요일/시간
   const [trigger, setTrigger] = React.useState<"enter" | "exit">("enter");
   const [days, setDays] = React.useState<number[]>([]);
   const [start, setStart] = React.useState("07:00");
@@ -98,8 +107,13 @@ export default function AddAlarmSheet({ open, onClose }: Props) {
     return d;
   });
 
+  // ▶ 처음 열릴 때 70% 지점에서 시작
   React.useEffect(() => {
-    open ? ref.current?.expand() : ref.current?.close();
+    if (open) {
+      ref.current?.snapToIndex(0); // snapPoints[0] == "70%"
+    } else {
+      ref.current?.close();
+    }
   }, [open]);
 
   // 현재 위치로 초기 이동(옵션)
@@ -109,13 +123,13 @@ export default function AddAlarmSheet({ open, onClose }: Props) {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status === "granted") {
           const cur = await Location.getCurrentPositionAsync({});
-          setRegion(r => ({
+          setRegion((r) => ({
             ...r,
             latitude: cur.coords.latitude,
-            longitude: cur.coords.longitude
+            longitude: cur.coords.longitude,
           }));
         }
-      } catch { }
+      } catch {}
     })();
   }, []);
 
@@ -160,21 +174,28 @@ export default function AddAlarmSheet({ open, onClose }: Props) {
   };
 
   const confirmCenter = () => {
-    setConfirmedLocation({ latitude: region.latitude, longitude: region.longitude });
+    setConfirmedLocation({
+      latitude: region.latitude,
+      longitude: region.longitude,
+    });
     setConfirmEnabled(false);
   };
 
   const toggleDay = (d: number) => {
-    setDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
+    setDays((prev) =>
+      prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]
+    );
   };
 
-  // ===== 2단계: 역/노선/방면 (입력은 유지, 후보 리스트만 표시) =====
+  // ===== 2단계: 역/노선/방면 =====
   const onChangeStation = (v: string) => {
-    setStationQuery(v); // ❌ 입력 단계에서 station(확정값)을 덮지 않음
+    setStationQuery(v);
     setPickedApiName(null);
     setLine("");
     setDirection("");
     setDirOptions([]);
+    setDirKey(null);
+    setNeighborApiName(null);
 
     const t = v.trim();
     if (t.length === 0) {
@@ -185,26 +206,31 @@ export default function AddAlarmSheet({ open, onClose }: Props) {
 
     const items = searchStations(t, { limit: 12 });
     setStationList(items);
-    // ❌ 단일 매칭 자동 확정 제거 (사용자가 반드시 탭해서 선택)
   };
 
-  const pickStation = (item: { displayName: string; apiName: string; line: string }) => {
-    setStationQuery(item.displayName); // ✅ 이제서야 입력칸에 반영
-    setStation(item.displayName); // ✅ 확정
+  const pickStation = (item: {
+    displayName: string;
+    apiName: string;
+    line: string;
+  }) => {
+    setStationQuery(item.displayName); // 입력칸에 반영
+    setStation(item.displayName); // 확정
     setPickedApiName(item.apiName);
 
     const lines = getLinesForStation(item.apiName);
     setLineOptions(lines);
-    setLine(item.line); // 선택 아이템의 라인 즉시 확정
+    setLine(item.line); // 우선 선택 항목의 라인으로 확정
 
     const dirs = getDirectionsForStationLine(item.apiName, item.line);
     setDirOptions(dirs);
-    setDirection(""); // 방면은 아직 선택 전
+    setDirection("");
+    setDirKey(null);
+    setNeighborApiName(null);
     setStationList([]); // 드롭다운 닫기
   };
 
   const pickLineChip = (v: string) => {
-    // 타이핑만 하고 자동완성을 탭하지 않은 경우 보완: query로 apiName 추정
+    // 자동완성 탭 누락 보정
     let apiName = pickedApiName;
     if (!apiName) {
       const fallback = searchStations(stationQuery.trim(), { limit: 1 });
@@ -218,6 +244,9 @@ export default function AddAlarmSheet({ open, onClose }: Props) {
 
     setLine(v);
     setDirection("");
+    setDirKey(null);
+    setNeighborApiName(null);
+
     if (apiName) {
       const dirs = getDirectionsForStationLine(apiName, v);
       setDirOptions(dirs);
@@ -226,31 +255,45 @@ export default function AddAlarmSheet({ open, onClose }: Props) {
     }
   };
 
-  const pickDirection = (d: { key: "up" | "down"; label: string; neighborApiName: string }) => {
-    setDirection(d.label);
+  const pickDirection = (d: {
+    key: "up" | "down";
+    label: string;
+    neighborApiName: string;
+  }) => {
+    setDirection(d.label); // UI 표시용
+    setDirKey(d.key); // ✅ 필수
+    setNeighborApiName(d.neighborApiName); // ✅ 필수
   };
 
   // ===================================================
   const handleCreate = () => {
-    if (!confirmedLocation) return Alert.alert("안내", "위치를 먼저 확정해주세요.");
-    if (!station || !line || !direction) return Alert.alert("안내", "지하철/방면을 입력 또는 선택해주세요.");
+    if (!confirmedLocation)
+      return Alert.alert("안내", "위를 먼저 확정해주세요.");
+    if (!station || !line || !direction)
+      return Alert.alert("안내", "지하철/방면을 선택해주세요.");
+    if (!pickedApiName)
+      return Alert.alert("안내", "자동완성 목록에서 역을 탭하여 확정해주세요.");
+    if (!dirKey || !neighborApiName)
+      return Alert.alert("안내", "방면을 선택해주세요.");
     if (days.length === 0) return Alert.alert("안내", "요일을 선택해주세요.");
 
-    const FIXED_RADIUS = 100; // ✅ 반경 고정
+    // addAlarm은 id/radiusM/createdAt을 내부에서 채움
     addAlarm({
-      id: `${Date.now()}`,
       title: `${station} ${line} (${direction})`,
-      radiusM: FIXED_RADIUS,
       days,
       startTime: start,
       endTime: end,
       enabled: true,
-      location: { lat: confirmedLocation.latitude, lng: confirmedLocation.longitude },
-      line,
-      direction,
-      targetTransit: { station, line, direction },
-      trigger,
-      createdAt: Date.now(),
+
+      // ✅ 지오펜싱 필수
+      location: {
+        lat: confirmedLocation.latitude,
+        lng: confirmedLocation.longitude,
+      },
+      trigger, // "enter" | "exit"
+      stationApiName: pickedApiName,
+      dirKey,
+      neighborApiName,
     });
 
     Alert.alert("완료", "알람을 추가했습니다.");
@@ -260,8 +303,10 @@ export default function AddAlarmSheet({ open, onClose }: Props) {
   return (
     <BottomSheet
       ref={ref}
-      // ✅ 키보드 대응 + 스냅포인트 상향
-      snapPoints={["90%"]}
+      // 처음 70%에서 열리고, 필요 시 90%까지 끌어올릴 수 있게 구성
+      snapPoints={["70%", "90%"]}
+      index={0}
+      android_keyboardInputMode="adjustPan"
       enablePanDownToClose
       onClose={onClose}
       backgroundStyle={styles.sheetBg}
@@ -269,16 +314,17 @@ export default function AddAlarmSheet({ open, onClose }: Props) {
       keyboardBehavior="interactive"
       keyboardBlurBehavior="restore"
     >
-      {/* ✅ ScrollView로 교체 + paddingBottom */}
       <BottomSheetScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={[styles.wrap, { paddingBottom: 140 }]}
-        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={[styles.wrap, { paddingBottom: 220 }]}
+        keyboardShouldPersistTaps="always"
       >
         {/* 헤더 */}
         <View style={styles.header}>
           <Text style={styles.hTitle}>알림 추가</Text>
-          <Pressable onPress={onClose}><Text style={styles.hClose}>닫기</Text></Pressable>
+          <Pressable onPress={onClose}>
+            <Text style={styles.hClose}>닫기</Text>
+          </Pressable>
         </View>
 
         {/* 단계 인디케이터 */}
@@ -294,19 +340,20 @@ export default function AddAlarmSheet({ open, onClose }: Props) {
         {step === 1 && (
           <View>
             <Text style={styles.section}>위치 설정</Text>
-            <Text style={styles.hint}>주소를 입력한 뒤, search 키로 검색하세요.</Text>
+            <Text style={styles.hint}>
+              주소를 입력한 뒤, search 키로 검색하세요.
+            </Text>
             <View style={{ flexDirection: "row", gap: 8, marginTop: 8 }}>
-              <TextInput
+              <BottomSheetTextInput
                 placeholder="주소를 입력하세요"
                 value={address}
                 onChangeText={setAddress}
                 style={[styles.input, { flex: 1 }]}
                 returnKeyType="search"
-                onSubmitEditing={searchAddress} // ✅ 버튼 없이 엔터로만 검색
+                onSubmitEditing={searchAddress}
                 autoCorrect={false}
                 autoCapitalize="none"
               />
-              {/* ⛔ 오른쪽 '검색' 버튼 제거 */}
             </View>
 
             {/* 지도 */}
@@ -318,7 +365,12 @@ export default function AddAlarmSheet({ open, onClose }: Props) {
                 region={region}
                 onRegionChangeComplete={onRegionChangeComplete}
               >
-                <Marker coordinate={{ latitude: region.latitude, longitude: region.longitude }} />
+                <Marker
+                  coordinate={{
+                    latitude: region.latitude,
+                    longitude: region.longitude,
+                  }}
+                />
               </MapView>
 
               <Pressable onPress={gotoMyLocation} style={styles.myLocBtn}>
@@ -338,7 +390,9 @@ export default function AddAlarmSheet({ open, onClose }: Props) {
               <Text
                 style={[
                   styles.btnConfirmText,
-                  !confirmEnabled ? styles.btnConfirmTextDisabled : styles.btnConfirmTextOn,
+                  !confirmEnabled
+                    ? styles.btnConfirmTextDisabled
+                    : styles.btnConfirmTextOn,
                 ]}
               >
                 {confirmedLocation ? "위치 확정됨" : "위치 확정하기"}
@@ -347,7 +401,11 @@ export default function AddAlarmSheet({ open, onClose }: Props) {
 
             <View style={styles.row}>
               <Ghost label="취소" onPress={onClose} />
-              <Primary label="다음" onPress={() => setStep(2)} disabled={!confirmedLocation} />
+              <Primary
+                label="다음"
+                onPress={() => setStep(2)}
+                disabled={!confirmedLocation}
+              />
             </View>
           </View>
         )}
@@ -357,8 +415,8 @@ export default function AddAlarmSheet({ open, onClose }: Props) {
           <View>
             <Text style={styles.section}>지하철/방면 설정</Text>
 
-            {/* 역 입력 + 자동완성(입력칸 자동 채움 금지) */}
-            <TextInput
+            {/* 역 입력 + 자동완성 */}
+            <BottomSheetTextInput
               placeholder="역명 (예: 사당역)"
               value={stationQuery}
               onChangeText={onChangeStation}
@@ -369,7 +427,15 @@ export default function AddAlarmSheet({ open, onClose }: Props) {
 
             {/* 자동완성 목록 */}
             {stationList.length > 0 && (
-              <View style={{ backgroundColor: "#fff", borderRadius: 12, borderWidth: 1, borderColor: "#eee", marginTop: 6 }}>
+              <View
+                style={{
+                  backgroundColor: "#fff",
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: "#eee",
+                  marginTop: 6,
+                }}
+              >
                 {stationList.map((it, idx) => (
                   <Pressable
                     key={`${it.apiName}-${it.line}-${idx}`}
@@ -383,18 +449,33 @@ export default function AddAlarmSheet({ open, onClose }: Props) {
               </View>
             )}
 
-            {/* 라인 칩 (다중 라인 역일 때만 표시) */}
+            {/* 라인 칩 */}
             {(pickedApiName || lineOptions.length > 0) && (
-              <View style={{ marginTop: 10, flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+              <View
+                style={{
+                  marginTop: 10,
+                  flexDirection: "row",
+                  gap: 8,
+                  flexWrap: "wrap",
+                }}
+              >
                 {lineOptions.map((ln) => {
                   const on = ln === line;
                   return (
                     <Pressable
                       key={ln}
                       onPress={() => pickLineChip(ln)}
-                      style={[styles.chip, on && styles.chipOn, { height: 34, paddingHorizontal: 10, borderRadius: 8 }]}
+                      style={[
+                        styles.chip,
+                        on && styles.chipOn,
+                        { height: 34, paddingHorizontal: 10, borderRadius: 8 },
+                      ]}
                     >
-                      <Text style={{ color: on ? "#fff" : "#666", fontWeight: "600" }}>{ln}</Text>
+                      <Text
+                        style={{ color: on ? "#fff" : "#666", fontWeight: "600" }}
+                      >
+                        {ln}
+                      </Text>
                     </Pressable>
                   );
                 })}
@@ -412,8 +493,14 @@ export default function AddAlarmSheet({ open, onClose }: Props) {
                       onPress={() => pickDirection(d)}
                       style={[styles.bigBtn, on && styles.bigBtnOn, { flex: 1 }]}
                     >
-                      <Text style={[styles.bigBtnTitle, on && styles.bigBtnTitleOn]}>{d.label}</Text>
-                      <Text style={[styles.bigBtnSub, on && styles.bigBtnSubOn]}>선택</Text>
+                      <Text
+                        style={[styles.bigBtnTitle, on && styles.bigBtnTitleOn]}
+                      >
+                        {d.label}
+                      </Text>
+                      <Text style={[styles.bigBtnSub, on && styles.bigBtnSubOn]}>
+                        선택
+                      </Text>
                     </Pressable>
                   );
                 })}
@@ -422,7 +509,11 @@ export default function AddAlarmSheet({ open, onClose }: Props) {
 
             <View style={styles.row}>
               <Ghost label="이전" onPress={() => setStep(1)} />
-              <Primary label="다음" onPress={() => setStep(3)} disabled={!station || !line || !direction} />
+              <Primary
+                label="다음"
+                onPress={() => setStep(3)}
+                disabled={!station || !line || !direction}
+              />
             </View>
           </View>
         )}
@@ -433,25 +524,53 @@ export default function AddAlarmSheet({ open, onClose }: Props) {
             <Text style={styles.section}>조건 · 알람 설정</Text>
 
             {/* 조건(진입/이탈) */}
-            <Text style={styles.label}>조건 설정 (설정한 위치 기준 반경 100m 내에 조건 실행)</Text>
+            <Text style={styles.label}>
+              조건 설정 (설정한 위치 기준 반경 100m 내에 조건 실행)
+            </Text>
             <View style={{ flexDirection: "row", gap: 12, marginTop: 8 }}>
-              <Pressable onPress={() => setTrigger("enter")} style={[styles.bigBtn, trigger === "enter" && styles.bigBtnOn]}>
-                <Text style={[styles.bigBtnTitle, trigger === "enter" && styles.bigBtnTitleOn]}>진입 알림</Text>
-                <Text style={[styles.bigBtnSub, trigger === "enter" && styles.bigBtnSubOn]}>설정한 위치에 진입할 때</Text>
+              <Pressable
+                onPress={() => setTrigger("enter")}
+                style={[styles.bigBtn, trigger === "enter" && styles.bigBtnOn]}
+              >
+                <Text
+                  style={[styles.bigBtnTitle, trigger === "enter" && styles.bigBtnTitleOn]}
+                >
+                  진입 알림
+                </Text>
+                <Text
+                  style={[styles.bigBtnSub, trigger === "enter" && styles.bigBtnSubOn]}
+                >
+                  설정한 위치에 진입할 때
+                </Text>
               </Pressable>
-              <Pressable onPress={() => setTrigger("exit")} style={[styles.bigBtn, trigger === "exit" && styles.bigBtnOn]}>
-                <Text style={[styles.bigBtnTitle, trigger === "exit" && styles.bigBtnTitleOn]}>이탈 알림</Text>
-                <Text style={[styles.bigBtnSub, trigger === "exit" && styles.bigBtnSubOn]}>설정한 위치에서 벗어날 때</Text>
+              <Pressable
+                onPress={() => setTrigger("exit")}
+                style={[styles.bigBtn, trigger === "exit" && styles.bigBtnOn]}
+              >
+                <Text
+                  style={[styles.bigBtnTitle, trigger === "exit" && styles.bigBtnTitleOn]}
+                >
+                  이탈 알림
+                </Text>
+                <Text
+                  style={[styles.bigBtnSub, trigger === "exit" && styles.bigBtnSubOn]}
+                >
+                  설정한 위치에서 벗어날 때
+                </Text>
               </Pressable>
             </View>
 
             {/* 요일 */}
             <Text style={styles.label}>요일 설정</Text>
             <View style={styles.days}>
-              {["일","월","화","수","목","금","토"].map((d, i) => {
+              {["일", "월", "화", "수", "목", "금", "토"].map((d, i) => {
                 const on = days.includes(i);
                 return (
-                  <Pressable key={i} onPress={() => toggleDay(i)} style={[styles.chip, on && styles.chipOn]}>
+                  <Pressable
+                    key={i}
+                    onPress={() => toggleDay(i)}
+                    style={[styles.chip, on && styles.chipOn]}
+                  >
                     <Text style={{ color: on ? "#fff" : "#666" }}>{d}</Text>
                   </Pressable>
                 );
@@ -495,11 +614,11 @@ export default function AddAlarmSheet({ open, onClose }: Props) {
               <View style={{ flexDirection: "row", gap: 12, marginTop: 8 }}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.timeLabel}>시작</Text>
-                  <TextInput value={start} onChangeText={setStart} style={styles.input} />
+                  <BottomSheetTextInput value={start} onChangeText={setStart} style={styles.input} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.timeLabel}>종료</Text>
-                  <TextInput value={end} onChangeText={setEnd} style={styles.input} />
+                  <BottomSheetTextInput value={end} onChangeText={setEnd} style={styles.input} />
                 </View>
               </View>
             )}
@@ -511,7 +630,6 @@ export default function AddAlarmSheet({ open, onClose }: Props) {
           </View>
         )}
       </BottomSheetScrollView>
-      {/* ⛔ 반경/미리보기 관련 바텀시트 없음 */}
     </BottomSheet>
   );
 }
@@ -527,7 +645,9 @@ function Dot({ active, label }: { active: boolean; label: string }) {
           backgroundColor: active ? COLORS.primary : "#D1D5DB",
         }}
       />
-      <Text style={{ fontSize: 12, color: active ? COLORS.primary : "#999", marginTop: 6 }}>{label}</Text>
+      <Text style={{ fontSize: 12, color: active ? COLORS.primary : "#999", marginTop: 6 }}>
+        {label}
+      </Text>
     </View>
   );
 }
@@ -608,11 +728,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: COLORS.primary,
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "center",
   },
   btnPrimaryText: { fontSize: 15, fontWeight: "600", color: "#FFF" },
   btnConfirm: { marginTop: 12, height: 42, borderRadius: 12, borderWidth: 1, alignItems: "center", justifyContent: "center" },
-  // ✅ 더 진한 보라 틴트로 변경 (가독성 상승)
   btnConfirmOn: { borderColor: COLORS.primary, backgroundColor: "rgba(90,77,255,0.16)" },
   btnConfirmDisabled: { borderColor: "#E5E7EB", backgroundColor: "#FFF" },
   btnConfirmText: { fontWeight: "700" },

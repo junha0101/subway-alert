@@ -1,17 +1,16 @@
-// utils/stations/index.ts
+// /subway-alert/utils/stations/index.ts
 // 2호선+4호선 역 데이터 접근 유틸 (자동완성/노선/방면)
 
-type StationRow = {
-  displayName: string;     // 앱에 보여줄 이름 (예: "인덕원역")
-  apiName: string;         // API에 던질 이름 (예: "인덕원")
-  line: string;            // "2호선" | "4호선"
-  neighborsUp: string | null;   // "평촌(4호선)" | null
-  neighborsDown: string | null; // "정부과천청사(4호선)" | null
-  branchTag: string;       // "main" 등
+export type StationRow = {
+  displayName: string;         // 앱 표시용 (예: "인덕원역")
+  apiName: string;             // API 질의용 (예: "인덕원")
+  line: string;                // "2호선" | "4호선"
+  neighborsUp: string | null;  // "평촌(4호선)" | null
+  neighborsDown: string | null;// "정부과천청사(4호선)" | null
+  branchTag: string;           // "main" 등
 };
 
-// NOTE: 이 파일은 /utils/stations/index.ts 기준으로 경로 계산됨
-// 루트에 assets/data/stations_line2_line4.json 이 있어야 함
+// NOTE: 경로 기준은 현재 파일(/utils/stations/index.ts)
 import raw from "../../assets/data/stations_line2_line4.json";
 
 const DATA: StationRow[] = raw as StationRow[];
@@ -37,9 +36,9 @@ export function getAllStations(): ReadonlyArray<StationRow> {
 export function getLinesForStation(apiName: string): string[] {
   const key = normalize(apiName);
   const set = new Set<string>();
-  DATA.forEach((row) => {
+  for (const row of DATA) {
     if (normalize(row.apiName) === key) set.add(row.line);
-  });
+  }
   return Array.from(set);
 }
 
@@ -59,7 +58,6 @@ export function searchStations(
   const lineFilter = options?.line ? normalize(options.line) : null;
 
   const results: Array<{ displayName: string; apiName: string; line: string }> = [];
-
   for (const row of DATA) {
     if (lineFilter && normalize(row.line) !== lineFilter) continue;
     const cand1 = normalize(row.displayName);
@@ -74,17 +72,15 @@ export function searchStations(
 
 /** 방면 후보(이웃역) 얻기
  *  - apiName + line 으로 해당 조합의 행을 찾고,
- *  - neighborsUp / neighborsDown 을 "○○역 방면" 레이블로 반환
+ *  - neighborsUp / neighborsDown 을 "○○ 방면" 레이블로 반환
  */
-export function getDirectionsForStationLine(apiName: string, line: string): Array<{
-  key: "up" | "down";
-  label: string;               // 예: "평촌 방면", "정부과천청사 방면"
-  neighborApiName: string;     // 예: "평촌"
-}> {
+export function getDirectionsForStationLine(
+  apiName: string,
+  line: string
+): Array<{ key: "up" | "down"; label: string; neighborApiName: string }> {
   const keyStation = normalize(apiName);
   const keyLine = normalize(line);
 
-  // 그 역/호선에 해당하는 첫 행을 하나 찾는다(우리 데이터는 역-호선 조합당 1행)
   const row = DATA.find(
     (r) => normalize(r.apiName) === keyStation && normalize(r.line) === keyLine
   );
@@ -100,23 +96,27 @@ export function getDirectionsForStationLine(apiName: string, line: string): Arra
 }
 
 /** 선택된 방면이 유효한지(해당 역/호선의 이웃과 일치하는지) */
-export function validateDirection(apiName: string, line: string, pickedNeighborApiName: string): boolean {
+export function validateDirection(
+  apiName: string,
+  line: string,
+  pickedNeighborApiName: string
+): boolean {
   const cand = getDirectionsForStationLine(apiName, line);
   const key = normalize(pickedNeighborApiName);
   return cand.some((c) => normalize(c.neighborApiName) === key);
 }
 
 /** 서울시 실시간 응답 필터링에 쓸 간단 규칙
- *  - 종착(bstatnNm) 또는 행선(trainLineNm) 문자열 안에 neighbor 이름이 들어가는지
- *  - updnLine 텍스트(상행/하행/내선/외선)와 사용자가 고른 up/down 키가 대략 일치하는지
+ *  - 종착(bstatnNm) 또는 행선(trainLineNm) 문자열 안에 neighbor 이름 포함 여부
+ *  - updnLine 텍스트(상/하/내/외)와 사용자가 고른 up/down 키가 대략 일치하는지
  *  ※ 상세 매칭은 실제 API 필드 보고 고도화
  */
 export function isTrainTowardsNeighbor(params: {
   apiNeighborName: string;
   upOrDown: "up" | "down";
-  updnLineText?: string;       // API: "상행" | "하행" | "내선" | "외선" ...
-  trainLineNm?: string;        // API: "성수행", "정부과천청사행" 등
-  bstatnNm?: string;           // API: 종착역
+  updnLineText?: string; // API: "상행" | "하행" | "내선" | "외선" ...
+  trainLineNm?: string;  // API: "성수행", "정부과천청사행" 등
+  bstatnNm?: string;     // API: 종착역
 }): boolean {
   const target = normalize(params.apiNeighborName);
   const inTrainLine = params.trainLineNm ? normalize(params.trainLineNm).includes(target) : false;

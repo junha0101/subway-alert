@@ -1,4 +1,5 @@
 // app/_layout.tsx
+import "../background/geofencing";
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 import React, { useEffect } from 'react';

@@ -8,6 +8,10 @@ import { paddingH, radiusCard, shadowCard } from "../../lib/ui";
 import ToggleBadge from "../../components/ToggleBadge";
 import { useAlarms } from "../../store/useAlarms";
 
+// ✅ (추가) Home과 동일한 FAB & 바텀시트
+import FabPlus from "../../components/FabPlus";
+import AddAlarmSheet from "../../components/AddAlarmSheet";
+
 // 빨간 Delete 액션(우측)
 function RightActions({ onDelete }: { onDelete: () => void }) {
   return (
@@ -24,6 +28,9 @@ function RightActions({ onDelete }: { onDelete: () => void }) {
 
 export default function MyTab() {
   const { alarms, toggleAlarm, removeAlarm } = useAlarms() as any;
+
+  // ✅ (추가) Home과 동일한 open state
+  const [open, setOpen] = React.useState(false);
 
   const confirmDelete = (id: string, title: string) => {
     Alert.alert(
@@ -81,6 +88,10 @@ export default function MyTab() {
           </Swipeable>
         ))}
       </ScrollView>
+
+      {/* ✅ (추가) Home과 동일한 FAB & 바텀시트 트리거 */}
+      <FabPlus onPress={() => setOpen(true)} />
+      {open && <AddAlarmSheet open={open} onClose={() => setOpen(false)} />}
     </SafeAreaView>
   );
 }

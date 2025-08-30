@@ -2,9 +2,8 @@
 import React from "react";
 import { Tabs } from "expo-router";
 import { Image } from "react-native";
-import COLORS from "../../lib/colors"; // 네가 쓰는 색상 토큰 있으면 유지, 없으면 제거
+import COLORS from "../../lib/colors";
 
-// 아이콘 이미지 불러오기 (상대경로 주의!)
 const ICONS = {
   home: require("../../assets/tab/home.png"),
   my: require("../../assets/tab/my.png"),
@@ -15,7 +14,7 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerTitleAlign: "center",
+        headerShown: false,                   // ✅ 모든 탭 헤더 숨김
         tabBarActiveTintColor: COLORS?.primary ?? "#5A4DFF",
         tabBarInactiveTintColor: "#9AA3AF",
         tabBarLabelStyle: { fontSize: 12, fontWeight: "600" },
