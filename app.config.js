@@ -1,7 +1,7 @@
 // app.config.js
 export default {
   expo: {
-    name: "subway-alert",
+    name: "행뚜",
     slug: "subway-alert",
     version: "1.0.0",
     orientation: "portrait",
@@ -22,10 +22,31 @@ export default {
     ios: {
       supportsTablet: false,
       bundleIdentifier: "com.haengttu.subwayalert",
+      // ✅ iOS에서 백그라운드 위치 권한 사용
+      backgroundModes: ["location"],
       infoPlist: {
-        NSLocationWhenInUseUsageDescription: "알림을 위해 내 주변 역·정류장 진입/이탈을 감지합니다.",
-        NSLocationAlwaysAndWhenInUseUsageDescription: "백그라운드에서도 위치 알림을 보내기 위해 필요합니다.",
-        NSUserTrackingUsageDescription: "개인화된 알림을 제공하기 위해 필요합니다.",
+        // --- 위치 권한 문구 (심사용) ---
+        NSLocationWhenInUseUsageDescription:
+          "역/정류장 진입·이탈을 확인하여 도착 알림을 보내기 위해 앱 사용 중 위치가 필요합니다.",
+        NSLocationAlwaysAndWhenInUseUsageDescription:
+          "앱이 꺼져 있어도 설정한 역 반경에 들어오면 알림을 보내기 위해 항상 위치가 필요합니다.",
+        NSLocationAlwaysUsageDescription:
+          "앱이 꺼져 있어도 설정한 역 반경에 들어오면 알림을 보내기 위해 항상 위치가 필요합니다.",
+        // --- 기존 항목 유지 ---
+        NSUserTrackingUsageDescription:
+          "개인화된 알림을 제공하기 위해 필요합니다.",
+
+        // --- ATS 예외 (서울시 OpenAPI http 사용 대비) ---
+        NSAppTransportSecurity: {
+          NSAllowsArbitraryLoads: false,
+          NSExceptionDomains: {
+            "openapi.seoul.go.kr": {
+              NSTemporaryExceptionAllowsInsecureHTTPLoads: true,
+              NSTemporaryExceptionMinimumTLSVersion: "TLSv1.0",
+              NSIncludesSubdomains: true,
+            },
+          },
+        },
       },
     },
     android: {
@@ -50,7 +71,6 @@ export default {
     },
     web: { favicon: "./assets/favicon.png" },
 
-    // 🔐 app.json에서 하드코딩했던 값을 환경변수로 주입
     extra: {
       EXPO_PUBLIC_SEOUL_API_KEY: process.env.EXPO_PUBLIC_SEOUL_API_KEY,
       router: {},

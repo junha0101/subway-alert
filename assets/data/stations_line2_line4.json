@@ -3,7 +3,7 @@
     "displayName": "당고개역",
     "apiName": "당고개",
     "line": "4호선",
-    "neighborsUp": NaN,
+    "neighborsUp": null,
     "neighborsDown": "상계(4호선)",
     "branchTag": "main"
   },
@@ -372,7 +372,7 @@
     "apiName": "오이도",
     "line": "4호선",
     "neighborsUp": "정왕(4호선)",
-    "neighborsDown": NaN,
+    "neighborsDown": null,
     "branchTag": "main"
   },
   {

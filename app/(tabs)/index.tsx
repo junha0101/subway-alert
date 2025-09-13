@@ -1,7 +1,9 @@
-// /subway-alert/app/(tabs)/index.tsx
-import React from "react";
-import { SafeAreaView, ScrollView, View, Text, StyleSheet, Pressable, Alert } from "react-native";
-import { Swipeable } from "react-native-gesture-handler";
+import React, { useEffect } from "react";
+import { SafeAreaView, ScrollView, View, Text, StyleSheet, Pressable, Alert, AppState } from "react-native";
+import { GestureHandlerRootView, Swipeable } from "react-native-gesture-handler";
+import { useFocusEffect } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import COLORS from "../../lib/colors";
 import { T } from "../../lib/typography";
 import { paddingH, radiusCard, shadowCard } from "../../lib/ui";
@@ -11,6 +13,8 @@ import FabPlus from "../../components/FabPlus";
 import AddAlarmSheet from "../../components/AddAlarmSheet";
 import AddFavoriteSheet from "../../components/AddFavoriteSheet";
 import FavoriteMiniCard from "../../components/FavoriteMiniCard";
+import { useUser } from "../../store/useUser";
+import NicknameOnboarding from "../../components/NicknameOnboarding";
 
 import { sendArrivalNotificationWithFields } from "../../utils/notify";
 import { getMockArrivals } from "../../utils/arrivals.mock";
@@ -29,9 +33,9 @@ function RightActions({ onDelete }: { onDelete: () => void }) {
         justifyContent: "center",
         alignItems: "center",
         width: 88,
-        height: "100%",
         borderRadius: MINI_R,
         marginLeft: 8,
+        marginBottom: 12,
       }}
     >
       <Text style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}>삭제</Text>
@@ -59,6 +63,95 @@ export default function Home() {
   const [open, setOpen] = React.useState(false);
   const [favOpen, setFavOpen] = React.useState(false);
   const [apiLoading, setApiLoading] = React.useState(false);
+
+  const { nickname, hasOnboarded, setHasOnboarded } = useUser();
+  const [showOnboarding, setShowOnboarding] = React.useState(false);
+
+  // ✅ 온보딩 끝났는지 확인 후 닉네임 모달 띄우기
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      const done = await AsyncStorage.getItem("onboarding:permissionsDone");
+      if (done === "true" && !hasOnboarded) {
+        setShowOnboarding(true);
+      }
+    };
+    checkOnboarding();
+  }, [hasOnboarded]);
+
+  // ✅ 폴백: 포커스 변경이 없을 때도 키 변화를 감지하도록 짧게 폴링
+  useEffect(() => {
+    let cancelled = false;
+    if (hasOnboarded) return;
+    let tries = 0;
+    const tick = async () => {
+      try {
+        const done = await AsyncStorage.getItem("onboarding:permissionsDone");
+        if ((done === "true" || done === "1") && !hasOnboarded) {
+          if (!cancelled) setShowOnboarding(true);
+          return;
+        }
+        if (tries < 40 && !cancelled) { // 약 10초 이내(250ms * 40)
+          tries += 1;
+          setTimeout(tick, 250);
+        }
+      } catch {}
+    };
+    tick();
+    return () => { cancelled = true; };
+  }, [hasOnboarded]);
+
+  // ✅ 앱이 백그라운드→포그라운드로 돌아올 때 재확인
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", async (state) => {
+      if (state === "active" && !hasOnboarded) {
+        const done = await AsyncStorage.getItem("onboarding:permissionsDone");
+        if ((done === "true" || done === "1") && !hasOnboarded) {
+          setShowOnboarding(true);
+        }
+      }
+    });
+    return () => sub.remove();
+  }, [hasOnboarded]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      (async () => {
+        const done = await AsyncStorage.getItem("onboarding:permissionsDone");
+        if ((done === "true" || done === "1") && !hasOnboarded) {
+          setShowOnboarding(true);
+        }
+      })();
+    }, [hasOnboarded])
+  );
+
+  const handleNicknameDone = () => {
+    setHasOnboarded(true);
+    setShowOnboarding(false);
+  };
+
+  // --- Swipeable refs & helpers (favorites + alarms) ---
+  const favSwipeRefs = React.useRef<Record<string, any>>({});
+  const alarmSwipeRefs = React.useRef<Record<string, any>>({});
+  const openFavId = React.useRef<string | null>(null);
+  const openAlarmId = React.useRef<string | null>(null);
+
+  const closeAllSwipes = React.useCallback(() => {
+    Object.values(favSwipeRefs.current).forEach(r => r?.close?.());
+    Object.values(alarmSwipeRefs.current).forEach(r => r?.close?.());
+    openFavId.current = null;
+    openAlarmId.current = null;
+  }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      requestAnimationFrame(() => closeAllSwipes());
+      return () => {
+        closeAllSwipes();
+        setOpen(false);
+        setFavOpen(false);
+      };
+    }, [closeAllSwipes])
+  );
 
   const confirmDeleteFavorite = (key: string, label: string) => {
     Alert.alert(
@@ -113,122 +206,150 @@ export default function Home() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.screenBg }}>
-      <ScrollView contentContainerStyle={{ padding: paddingH, paddingBottom: 120 }}>
-        <Text style={[T.helloName, { color: COLORS.primary, marginTop: 10, fontSize: 24 }]}>준하님,</Text>
-        <Text style={[T.helloSub, { fontSize: 14 }]}>오도 안전하고 가벼운 이동 되세요~!</Text>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.screenBg }}>
+        <ScrollView contentContainerStyle={{ padding: paddingH, paddingBottom: 120 }}>
+          <Text style={[T.helloName, { color: COLORS.primary, marginTop: 10, fontSize: 24 }]}>
+            {nickname ? `${nickname}님,` : "사용자님,"}
+          </Text>
+          <Text style={[T.helloSub, { fontSize: 14 }]}>오늘도 안전하고 가벼운 이동 되세요~!</Text>
 
-        {/* 자주 타는 것 */}
-        <View style={styles.outerCard}>
-          <View style={styles.favHeaderRow}>
-            <Text style={[T.cardTitle]}>자주 타는 것</Text>
-            <Pressable
-              onPress={() => setFavOpen(true)}
-              hitSlop={8}
-              style={({ pressed }) => [styles.favPlusBtn, pressed && { opacity: 0.6 }]}
-            >
-              <Text style={styles.favPlusTxt}>＋</Text>
-            </Pressable>
+          {/* 자주 타는 것 */}
+          <View style={styles.outerCard}>
+            <View style={styles.favHeaderRow}>
+              <Text style={[T.cardTitle]}>자주 타는 것</Text>
+              <Pressable
+                onPress={() => setFavOpen(true)}
+                hitSlop={8}
+                style={({ pressed }) => [styles.favPlusBtn, pressed && { opacity: 0.6 }]}
+              >
+                <Text style={styles.favPlusTxt}>＋</Text>
+              </Pressable>
+            </View>
+
+            {!favorites || favorites.length === 0 ? (
+              <Text style={[T.cardSub, { marginTop: 2 }]}>등록된 즐겨찾기가 없어요.</Text>
+            ) : (
+              <View style={{ gap: 10 }}>
+                {favorites.map((f: any) => (
+                  <Swipeable
+                    key={f.key}
+                    ref={(r) => {
+                      if (r) favSwipeRefs.current[f.key] = r;
+                      else delete favSwipeRefs.current[f.key];
+                    }}
+                    onSwipeableOpen={() => {
+                      if (openFavId.current && openFavId.current !== f.key) {
+                        favSwipeRefs.current[openFavId.current]?.close?.();
+                      }
+                      openFavId.current = f.key;
+                    }}
+                    onSwipeableClose={() => {
+                      if (openFavId.current === f.key) openFavId.current = null;
+                    }}
+                    renderRightActions={() => (
+                      <RightActions
+                        onDelete={() =>
+                          confirmDeleteFavorite(f.key, `${f.stationName} ${f.line} (${f.direction})`)
+                        }
+                      />
+                    )}
+                    overshootRight={false}
+                  >
+                    <FavoriteMiniCard stationName={f.stationName} line={f.line} direction={f.direction} />
+                  </Swipeable>
+                ))}
+              </View>
+            )}
           </View>
 
-          {/* 목록/placeholder */}
-          {!favorites || favorites.length === 0 ? (
-            <Text style={[T.cardSub, { marginTop: 2 }]}>등록된 즐겨찾기가 없어요.</Text>
-          ) : (
-            <View style={{ gap: 10 }}>
-              {favorites.map((f: any) => (
-                <Swipeable
-                  key={f.key}
-                  renderRightActions={() => (
-                    <RightActions
-                      onDelete={() =>
-                        confirmDeleteFavorite(f.key, `${f.stationName} ${f.line} (${f.direction})`)
-                      }
-                    />
-                  )}
-                  overshootRight={false}
-                >
-                  <FavoriteMiniCard stationName={f.stationName} line={f.line} direction={f.direction} />
-                </Swipeable>
-              ))}
-            </View>
-          )}
-        </View>
-
-        {/* 활성화된 알람 */}
-        <Text style={{ marginTop: 18, marginBottom: 8, color: COLORS.textSub }}>활성화된 알람</Text>
-        {enabled.map((a: any) => {
-          const { station, line, direction } = parseTitle(a.title);
-          return (
-            <Swipeable
-              key={a.id}
-              renderRightActions={() => (
-                <RightActions
-                  onDelete={() =>
-                    Alert.alert(
-                      "알람 삭제",
-                      `“${a.title}” 알람을 삭제할까요?`,
-                      [{ text: "취소", style: "cancel" }, { text: "삭제", style: "destructive", onPress: () => removeAlarm(a.id) }],
-                      { cancelable: true }
-                    )
+          {/* 활성화된 알람 */}
+          <Text style={{ marginTop: 18, marginBottom: 8, color: COLORS.textSub }}>활성화된 알람</Text>
+          {enabled.map((a: any) => {
+            const { station, line, direction } = parseTitle(a.title);
+            return (
+              <Swipeable
+                key={a.id}
+                ref={(r) => {
+                  if (r) alarmSwipeRefs.current[a.id] = r;
+                  else delete alarmSwipeRefs.current[a.id];
+                }}
+                onSwipeableOpen={() => {
+                  if (openAlarmId.current && openAlarmId.current !== a.id) {
+                    alarmSwipeRefs.current[openAlarmId.current]?.close?.();
                   }
-                />
-              )}
-              overshootRight={false}
-            >
-              <View style={styles.alarmCard}>
-                <View style={{ flex: 1 }}>
-                  {/* 1줄: 역명 + 호선 배지 + 방면(인라인) */}
-                  <View style={styles.titleRow}>
-                    <Text style={T.cardTitle}>{station}</Text>
+                  openAlarmId.current = a.id;
+                }}
+                onSwipeableClose={() => {
+                  if (openAlarmId.current === a.id) openAlarmId.current = null;
+                }}
+                renderRightActions={() => (
+                  <RightActions
+                    onDelete={() =>
+                      Alert.alert(
+                        "알람 삭제",
+                        `“${a.title}” 알람을 삭제할까요?`,
+                        [{ text: "취소", style: "cancel" }, { text: "삭제", style: "destructive", onPress: () => removeAlarm(a.id) }],
+                        { cancelable: true }
+                      )
+                    }
+                  />
+                )}
+                overshootRight={false}
+              >
+                <View style={styles.alarmCard}>
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.titleRow}>
+                      <Text style={T.cardTitle}>{station}</Text>
+                      {!!line && (
+                        <View style={styles.lineBadge}>
+                          <Text style={styles.lineBadgeText}>{line}</Text>
+                        </View>
+                      )}
+                      {!!direction && (
+                        <Text style={styles.dirInline} numberOfLines={1} ellipsizeMode="tail">
+                          {direction}
+                        </Text>
+                      )}
+                    </View>
 
-                    {!!line && (
-                      <View style={styles.lineBadge}>
-                        <Text style={styles.lineBadgeText}>{line}</Text>
-                      </View>
-                    )}
-
-                    {!!direction && (
-                      <Text style={styles.dirInline} numberOfLines={1} ellipsizeMode="tail">
-                        {direction}
+                    <View style={styles.metaRow}>
+                      <Text style={[styles.metaText, { fontWeight: '900', fontSize: 14, lineHeight: 20 }]}>{fmtDays(a.days)}</Text>
+                      <Text style={[styles.metaDivider, { fontWeight: '900', fontSize: 14, lineHeight: 20 }]}> / </Text>
+                      <Text style={[styles.metaText, { fontWeight: '700', fontSize: 14, lineHeight: 20 }]}>
+                        {a.startTime}~{a.endTime}
                       </Text>
-                    )}
+                    </View>
                   </View>
-
-                  {/* 2줄: 요일 / 시간 */}
-                  <View style={styles.metaRow}>
-                    <Text style={[styles.metaText, { fontWeight: 900, fontSize: 14, lineHeight: 20 }]}>{fmtDays(a.days)}</Text>
-                    <Text style={[styles.metaDivider, { fontWeight: 900, fontSize: 14, lineHeight: 20 }]}> / </Text>
-                    <Text style={[styles.metaText, { fontWeight: 700, fontSize: 14, lineHeight: 20 }]}>
-                      {a.startTime}~{a.endTime}
-                    </Text>
-                  </View>
+                  <ToggleBadge value={a.enabled} onChange={() => toggleAlarm(a.id)} />
                 </View>
+              </Swipeable>
+            );
+          })}
 
-                {/* 토글 */}
-                <ToggleBadge value={a.enabled} onChange={() => toggleAlarm(a.id)} />
-              </View>
-            </Swipeable>
-          );
-        })}
+          {/* 테스트 버튼 */}
+          <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 12 }}>
+            <Pressable onPress={testNotify} style={{ marginHorizontal: 8 }}>
+              <Text style={{ color: COLORS.primary, fontWeight: "600" }}>알림 테스트</Text>
+            </Pressable>
+            <Pressable onPress={testApi} style={{ marginHorizontal: 8 }} disabled={apiLoading}>
+              <Text style={{ color: apiLoading ? "#A0A0A0" : COLORS.primary, fontWeight: "600" }}>
+                {apiLoading ? "API 테스트 중…" : "API 테스트"}
+              </Text>
+            </Pressable>
+          </View>
+        </ScrollView>
 
-        {/* 테스트 버튼 */}
-        <View style={{ flexDirection: "row", justifyContent: "center", marginTop: 12 }}>
-          <Pressable onPress={testNotify} style={{ marginHorizontal: 8 }}>
-            <Text style={{ color: COLORS.primary, fontWeight: "600" }}>알림 테스트</Text>
-          </Pressable>
-          <Pressable onPress={testApi} style={{ marginHorizontal: 8 }} disabled={apiLoading}>
-            <Text style={{ color: apiLoading ? "#A0A0A0" : COLORS.primary, fontWeight: "600" }}>
-              {apiLoading ? "API 테스트 중…" : "API 테스트"}
-            </Text>
-          </Pressable>
-        </View>
-      </ScrollView>
+        <FabPlus onPress={() => setOpen(true)} />
+        {open && <AddAlarmSheet open={open} onClose={() => setOpen(false)} />}
+        {favOpen && <AddFavoriteSheet open={favOpen} onClose={() => setFavOpen(false)} />}
 
-      <FabPlus onPress={() => setOpen(true)} />
-      {open && <AddAlarmSheet open={open} onClose={() => setOpen(false)} />}
-      {favOpen && <AddFavoriteSheet open={favOpen} onClose={() => setFavOpen(false)} />}
-    </SafeAreaView>
+        {/* ✅ 닉네임 온보딩 모달 */}
+        {showOnboarding && (
+          <NicknameOnboarding visible={showOnboarding} onClose={handleNicknameDone} />
+        )}
+      </SafeAreaView>
+    </GestureHandlerRootView>
   );
 }
 
@@ -238,7 +359,6 @@ function fmtDays(days: number[]) {
 }
 
 const styles = StyleSheet.create({
-  // 부모 카드
   outerCard: {
     backgroundColor: "#fff",
     borderRadius: radiusCard,
@@ -247,12 +367,10 @@ const styles = StyleSheet.create({
     marginTop: 8,
     ...shadowCard,
   },
-
-  // 즐겨찾기 헤더 한 줄 정렬
   favHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center", // + 버튼 수직 중앙
+    alignItems: "center",
     marginBottom: 9,
   },
   favPlusBtn: {
@@ -267,8 +385,6 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     fontSize: 20,
   },
-
-  // 알람 카드
   alarmCard: {
     backgroundColor: "#fff",
     borderRadius: radiusCard,
@@ -278,15 +394,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     ...shadowCard,
   },
-
-  // 제목줄(역명 + 배지 + 방면)
   titleRow: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 4,
   },
-
-  // 호선 배지 (연보라 타원)
   lineBadge: {
     backgroundColor: "rgba(90,77,255,0.12)",
     paddingHorizontal: 8,
@@ -300,16 +412,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     fontSize: 12,
   },
-
-  // ✅ 방면 인라인(배지 오른쪽)
   dirInline: {
     fontSize: 13,
     color: "rgba(0,0,0,0.6)",
-    marginLeft: 8,   // 배지와 동일 간격
-    flexShrink: 1,   // 길면 말줄임
+    marginLeft: 8,
+    flexShrink: 1,
   },
-
-  // 요일/시간
   metaRow: { flexDirection: "row", alignItems: "center" },
   metaText: { fontSize: 12.5, color: "rgba(0,0,0,0.6)" },
   metaDivider: { fontSize: 12.5, color: "rgba(0,0,0,0.35)", marginHorizontal: 6 },

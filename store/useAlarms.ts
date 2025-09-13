@@ -2,6 +2,7 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { refreshGeofencing } from "../background/geofencing"; // ✅ 알람 변경 → 지오펜스 재등록
 
 /** 상/하행 키 */
 export type DirKey = "up" | "down";
@@ -16,7 +17,20 @@ export type Alarm = {
   enabled: boolean;           // ON/OFF
 
   // ✅ 지오펜싱/방면/스케줄 확장 필드
+  /**
+   * 좌표는 다양한 형태로 들어올 수 있으므로 넓게 허용한다.
+   * - location: { lat, lng }  ← 기존 프로젝트에서 쓰던 형태
+   * - latitude/longitude 또는 lat/lng (개별 필드)
+   * - coords/region: { latitude, longitude } (여타 컴포넌트/라이브러리 호환)
+   */
   location?: { lat: number; lng: number }; // 지오펜스 중심 좌표
+  latitude?: number;
+  longitude?: number;
+  lat?: number;
+  lng?: number;
+  coords?: { latitude: number; longitude: number };
+  region?: { latitude: number; longitude: number };
+
   trigger?: "enter" | "exit";              // 진입/이탈
   stationApiName?: string;                 // 실시간 API용 역명
   dirKey?: DirKey;                         // "up" | "down"
@@ -58,6 +72,65 @@ type State = {
   existsFavorite: (key: string) => boolean;
 };
 
+// ✅ 지오펜스 재등록 디바운스 (RN에선 number 반환)
+let _geofenceTimer: ReturnType<typeof setTimeout> | null = null;
+function scheduleGeofenceRefresh(delay = 300) {
+  if (_geofenceTimer) clearTimeout(_geofenceTimer);
+  _geofenceTimer = setTimeout(() => {
+    try {
+      refreshGeofencing();
+    } catch (e) {
+      // no-op (로그는 background/geofencing.ts에서 관리)
+    }
+  }, delay);
+}
+
+// 좌표 정규화 유틸: 들어온 Alarm 파라미터에서 lat/lng를 최대한 추출해 일관 저장
+function normalizeCoords(a: Partial<Alarm>) {
+  // 추출
+  const lat =
+    a.latitude ??
+    a.lat ??
+    a.coords?.latitude ??
+    a.region?.latitude ??
+    a.location?.lat;
+
+  const lng =
+    a.longitude ??
+    a.lng ??
+    a.coords?.longitude ??
+    a.region?.longitude ??
+    a.location?.lng;
+
+  // 숫자인지 검증
+  const validLat = typeof lat === "number" && !Number.isNaN(lat);
+  const validLng = typeof lng === "number" && !Number.isNaN(lng);
+
+  if (!validLat || !validLng) {
+    return {
+      // 좌표가 없다면 그대로 둔다(지오펜싱 등록 시 필터링/예외 처리)
+      location: a.location,
+      latitude: a.latitude,
+      longitude: a.longitude,
+      lat: a.lat,
+      lng: a.lng,
+      coords: a.coords,
+      region: a.region,
+    };
+  }
+
+  // 일관 저장(모든 형태를 채워, 어느 소비자에서도 접근 가능)
+  return {
+    location: { lat: lat as number, lng: lng as number },
+    latitude: lat as number,
+    longitude: lng as number,
+    lat: lat as number,
+    lng: lng as number,
+    coords: { latitude: lat as number, longitude: lng as number },
+    region: { latitude: lat as number, longitude: lng as number },
+  };
+}
+
 export const useAlarms = create<State>()(
   persist(
     (set, get) => ({
@@ -67,17 +140,23 @@ export const useAlarms = create<State>()(
 
       addAlarm(a) {
         const id = `a${Date.now()}`;
+        const coords = normalizeCoords(a);
+
         set({
           alarms: [
             {
               ...a,
+              ...coords,                    // ✅ 좌표를 일관된 모든 형태로 채워 저장
               id,
               radiusM: 100,
               createdAt: Date.now(),
-            },
+            } as Alarm,
             ...get().alarms,
           ],
         });
+
+        // ✅ 알람 배열 변경 → 지오펜스 재등록(디바운스)
+        scheduleGeofenceRefresh();
       },
 
       toggleAlarm(id) {
@@ -86,18 +165,27 @@ export const useAlarms = create<State>()(
             x.id === id ? { ...x, enabled: !x.enabled } : x
           ),
         });
+
+        // ✅ 알람 배열 변경 → 지오펜스 재등록(디바운스)
+        scheduleGeofenceRefresh();
       },
 
       removeAlarm(id) {
         set({ alarms: get().alarms.filter(x => x.id !== id) });
+
+        // ✅ 알람 배열 변경 → 지오펜스 재등록(디바운스)
+        scheduleGeofenceRefresh();
       },
 
       removeMany(ids) {
         const setIds = new Set(ids);
         set({ alarms: get().alarms.filter(x => !setIds.has(x.id)) });
+
+        // ✅ 알람 배열 변경 → 지오펜스 재등록(디바운스)
+        scheduleGeofenceRefresh();
       },
 
-      // ✅ 지오펜싱 쿨다운 타임스탬프 갱신
+      // ✅ 지오펜싱 쿨다운 타임스탬프 갱신 (알람 배열 구조는 유지 → 재등록 불필요)
       markTriggered(id, ts) {
         set({
           alarms: get().alarms.map(a =>
@@ -124,14 +212,26 @@ export const useAlarms = create<State>()(
       storage: createJSONStorage(() => AsyncStorage),
       onRehydrateStorage: () => (state) => {
         if (state) {
-          // radiusM 보정
-          state.alarms = state.alarms.map((a: Alarm) => ({
-            ...a,
-            radiusM: !a.radiusM || isNaN(a.radiusM as unknown as number) ? 100 : a.radiusM,
-            createdAt: a.createdAt ?? Date.now(),
-          }));
+          // radiusM 보정 + 좌표 재정규화(구버전 데이터 정리)
+          state.alarms = state.alarms.map((a: Alarm) => {
+            const radius =
+              !a.radiusM || Number.isNaN(a.radiusM as unknown as number) ? 100 : a.radiusM;
+
+            const fixed = {
+              ...a,
+              radiusM: radius,
+              createdAt: a.createdAt ?? Date.now(),
+              ...normalizeCoords(a),
+            } as Alarm;
+
+            return fixed;
+          });
+
           // ✅ 즐겨찾기 필드가 없던 사용자의 경우 초기화
           if (!Array.isArray((state as any).favorites)) (state as any).favorites = [];
+
+          // ✅ 스토어 복구 직후에도 지오펜스 상태 최신화
+          scheduleGeofenceRefresh(100);
         }
       },
     }
